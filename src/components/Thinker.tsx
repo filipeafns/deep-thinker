@@ -84,6 +84,30 @@ export const Thinker = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Format elapsed time
+  const formatElapsedTime = (seconds: number) => {
+    if (seconds < 60) {
+      return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}min and ${remainingSeconds}s`;
+  };
+
+  // Timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTime(prev => {
+        // Reset at 5 minutes (300 seconds)
+        if (prev >= 300) return 0;
+        return prev + 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const lines = Array.from({ length: 1000 }, () => {
@@ -157,12 +181,19 @@ export const Thinker = () => {
 
             <div className="flex flex-col h-full p-4">
               <div className="flex items-center gap-2 mb-2">
-                <p className="text-white/80 font-medium">Thinking</p>
                 <motion.div
                   className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ duration: isHovered ? 2 : 1, repeat: Infinity, ease: "linear" }}
                 />
+                <motion.p 
+                  className="text-white/80 font-medium min-w-[140px] text-[14px]"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Thinking for {formatElapsedTime(elapsedTime)}
+                </motion.p>
               </div>
               
               {/* Content container with gradient masks */}
