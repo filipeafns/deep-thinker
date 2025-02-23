@@ -83,6 +83,7 @@ export const Thinker = () => {
   const [thinkingLines, setThinkingLines] = useState<string[]>([]);
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     const lines = Array.from({ length: 1000 }, () => {
@@ -95,16 +96,37 @@ export const Thinker = () => {
   useEffect(() => {
     if (thinkingLines.length === 0) return;
 
+    const randomPause = () => {
+      setIsPaused(true);
+      const pauseDuration = Math.random() * 1000 + 500; // Random pause between 500ms and 1500ms
+      setTimeout(() => setIsPaused(false), pauseDuration);
+    };
+
     const interval = setInterval(() => {
-      setCurrentLine((prev) => (prev + 1) % thinkingLines.length);
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+      if (!isPaused) {
+        setCurrentLine((prev) => {
+          const next = (prev + 1) % thinkingLines.length;
+          
+          // Randomly decide to pause
+          if (Math.random() < 0.1) { // 10% chance to pause
+            randomPause();
+          }
+          
+          return next;
+        });
+
+        scrollRef.current?.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
     }, isHovered ? (isExpanded ? 400 : 200) : 60);
 
     return () => clearInterval(interval);
-  }, [thinkingLines, isHovered, isExpanded]);
+  }, [thinkingLines, isHovered, isExpanded, isPaused]);
+
+  // Split text into words for animation
+  const splitIntoWords = (text: string) => text.split(' ');
 
   return (
     <div className="relative w-[450px]">
@@ -170,12 +192,32 @@ export const Thinker = () => {
                       {thinkingLines.slice(0, currentLine + 1).map((line, i) => (
                         <motion.div
                           key={i}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: isHovered ? 0.4 : 0.2 }}
-                          className="px-2 py-0.5 rounded hover:bg-white/5"
+                          className="px-2 py-0.5 rounded hover:bg-white/5 flex flex-wrap gap-1"
                         >
-                          {line}
+                          {splitIntoWords(line).map((word, wordIndex) => (
+                            <motion.span
+                              key={`${i}-${wordIndex}`}
+                              initial={{ 
+                                opacity: 0, 
+                                y: 20,
+                              }}
+                              animate={{ 
+                                opacity: isPaused ? [0.3, 0.6, 0.3] : 1,
+                                y: 0 
+                              }}
+                              transition={{ 
+                                duration: isPaused ? 1 : 0.2,
+                                delay: wordIndex * 0.05, // Stagger each word
+                                ease: isPaused ? "easeInOut" : [0.25, 0.1, 0.25, 1],
+                                opacity: {
+                                  repeat: isPaused ? Infinity : 0,
+                                  duration: 1
+                                }
+                              }}
+                            >
+                              {word}
+                            </motion.span>
+                          ))}
                         </motion.div>
                       ))}
                     </motion.div>
